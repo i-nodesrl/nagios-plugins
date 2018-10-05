@@ -1,0 +1,86 @@
+#!/bin/bash
+#
+# check_time_diff
+# Nagios plugin to check if system time has any diff
+#
+# Version: 2018-10-05H12:16:50
+#
+# Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
+#
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see http://www.gnu.org/licenses/.
+
+# auxiliary functions
+
+function help()		{ echo -e "Usage:\n\t./$0 -s <ntp_server> [-w <warning_diff in seconds>] [-c <critical_diff in seconds>]"; exit 0; }
+function ok()		{ echo "OK: $1"; exit 0; }
+function warning()	{ echo "WARNING: $1"; exit 1; }
+function critical()	{ echo "CRITICAL: $1"; exit 2; }
+function unknown()	{ echo "UNKNOWN: $1"; exit 3; }
+
+# arguments parsing
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		-h|--help)
+			help
+			;;
+		-s|--server)
+			SERVER_NTP="$2"
+			shift
+			;;
+		-w|--warning)
+			WARNING_DIFF="$2"
+			shift
+			;;
+		-c|--critical)
+			CRITICAL_DIFF="$2"
+			shift
+			;;
+	esac
+	shift
+done
+
+# arguments validation
+
+if [ -z ${SERVER_NTP} ]; then
+	unknown "Parameter <server_ntp> not set"
+fi
+
+if [ -z ${WARNING_DIFF} ]; then
+	WARNING_DIFF=1
+fi
+
+if [ -z ${CLIENT_EMAIL} ]; then
+	CRITICAL_DIFF=5
+fi
+
+# effective script
+
+if [ "$(which ntpdate 2>/dev/null > /dev/null; echo $?)" -ne 0 ]; then
+	unknown "ntpdate command not found"
+fi
+
+NTPDATE_OUTPUT="$(ntpdate -q it.pool.ntp.org 2>/dev/null)"
+DIFF="$(awk '/adjust/ {print $(NF-1)}' <<<"${NTPDATE_OUTPUT}")"
+
+if [ -z "${DIFF}" ]; then
+	unknown "unable to parse ntpdate output: $(echo ${NTPDATE_OUTPUT} | xargs)"
+fi
+
+DIFF_INT="$(awk -F'.' '{print $1}' <<<"${DIFF}")"
+DIFF_INT="${DIFF_INT#-}"
+
+if [ "${DIFF_INT}" -ge "${CRITICAL_DIFF}" ]; then
+	critical "${DIFF} seconds time diff"
+elif [ "${DIFF_INT}" -ge "${WARNING_DIFF}" ]; then
+	warning "${DIFF} seconds time diff"
+else
+	ok "no diff (${DIFF} seconds)"
+fi

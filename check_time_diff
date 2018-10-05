@@ -3,7 +3,7 @@
 # check_time_diff
 # Nagios plugin to check if system time has any diff
 #
-# Version: 2018-10-05H13:52:47
+# Version: 2018-10-05H14:18:52
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -67,11 +67,15 @@ if [ "$(which ntpdate 2>/dev/null > /dev/null; echo $?)" -ne 0 ]; then
 	unknown "ntpdate command not found"
 fi
 
-NTPDATE_OUTPUT="$(ntpdate -q it.pool.ntp.org 2>/dev/null | xargs)"
+NTPDATE_OUTPUT="$(ntpdate -q it.pool.ntp.org 2>&1 | xargs)"
 DIFF="$(awk '/sec$/ {print $(NF-1)}' <<<"${NTPDATE_OUTPUT}")"
 
 if [ -z "${DIFF}" ]; then
-	unknown "unable to parse ntpdate output: ${NTPDATE_OUTPUT})"
+	if [ "$(grep -c 'no server suitable' <<<"${NTPDATE_OUTPUT}")" -gt 0 ]; then
+		unknown "no server suitable for synchronization found"
+	else
+		unknown "unable to parse ntpdate output: ${NTPDATE_OUTPUT})"
+	fi
 fi
 
 DIFF_INT="$(awk -F'.' '{print $1}' <<<"${DIFF}")"

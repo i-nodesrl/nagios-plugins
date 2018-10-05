@@ -1,12 +1,22 @@
-plugins = $(wildcard check_*)
+PLUGINS	= $(wildcard check_*)
+CWD		= $(shell pwd)
+NAGIOS	= "/usr/lib64/nagios/plugins/"
 
 .PHONY: install
-install: $(plugins)
-	@ln -sf $$(pwd)/$(plugins) /usr/lib64/nagios/plugins/
+install: $(PLUGINS)
+	@( \
+		for plugin in $(PLUGINS); do \
+			ln -sf "$(CWD)/$$plugin" "$(NAGIOS)"; \
+		done; \
+	);
 
 .PHONY: uninstall
-uninstall: $(plugins)
-	@rm -f /usr/lib64/nagios/plugins/$(plugins)
+uninstall: $(PLUGINS)
+	@( \
+		for plugin in $(PLUGINS); do \
+			rm -f "$(NAGIOS)/$$plugin"; \
+		done; \
+	);
 
 .PHONY: update
 update:

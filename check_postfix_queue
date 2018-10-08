@@ -3,7 +3,7 @@
 # check_time_diff
 # Nagios plugin to check if system time has any diff
 #
-# Version: 2018-10-08H09:56:11
+# Version: 2018-10-08H10:08:07
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -59,8 +59,8 @@ if [ "$(which postqueue 2>/dev/null > /dev/null; echo $?)" -ne 0 ]; then
 	unknown "postqueue command not found"
 fi
 
-POSTQUEUE_OUTPUT="$(postqueue -p)
-if [ "$(grep -c "queue is empty" <<<"${POSTQUEUE_OUTPUT}")" -gt 0 ]; then
+POSTQUEUE_OUTPUT="$(postqueue -p)"
+if [ "$(grep -c "queue is empty" <<<"${POSTQUEUE_OUTPUT}") -gt 0 ]; then
 	ok "queue is empty"
 fi
 

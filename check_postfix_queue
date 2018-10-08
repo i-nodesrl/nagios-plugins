@@ -3,7 +3,7 @@
 # check_time_diff
 # Nagios plugin to check if system time has any diff
 #
-# Version: 2018-10-08H10:10:54
+# Version: 2018-10-08H10:44:36
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -65,6 +65,10 @@ if [ "$(grep -c "queue is empty" <<<"${POSTQUEUE_OUTPUT}")" -gt 0 ]; then
 fi
 
 QUEUE="$(awk 'END{ print $5 }' <<<"${POSTQUEUE_OUTPUT}")"
+
+if [ -z "${QUEUE}" ] then
+	unknown "unable to parse postqueue output"
+fi
 
 if [ "${QUEUE}" -ge "${CRITICAL_THRESHOLD}" ]; then
 	critical "queue size ${QUEUE}"

@@ -1,0 +1,72 @@
+#!/bin/bash
+#
+# notify_telegram_host
+# Nagios notification plugin to fire Telegram (bot) host notifications
+#
+# Version: 2018-10-08H10:46:08
+#
+# Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
+#
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see http://www.gnu.org/licenses/.
+
+# auxiliary functions
+
+function help()		{ echo -e "Usage:\n\t./$0 -t <bot_token> -c <chat_id>"; exit 0; }
+
+# arguments parsing
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		-h|--help)
+			help
+			;;
+		-t|--token)
+			TELEGRAM_BOT_TOKEN="$2"
+			shift
+			;;
+		-c|--chat-id)
+			TELEGRAM_CHAT_ID="$2"
+			shift
+			;;
+	esac
+	shift
+done
+
+# arguments validation
+
+if [ -z "${TELEGRAM_BOT_TOKEN}" ] || [ -z "${TELEGRAM_CHAT_ID}" ]; then
+	help
+fi
+
+# effective script
+
+TEMPLATE=$(cat <<TEMPLATE
+*$NOTIFICATIONTYPE - $HOSTDISPLAYNAME is $HOSTSTATE*
+
+Notification Type: $NOTIFICATIONTYPE
+
+Host: $HOSTALIAS
+Address: $HOSTADDRESS
+State: $HOSTSTATE
+
+Date/Time: $LONGDATETIME
+
+Additional Info:
+\`$HOSTOUTPUT\`
+
+Comment: [$NOTIFICATIONAUTHORNAME] $NOTIFICATIONCOMMENT
+TEMPLATE
+)
+
+curl --silent --output /dev/null \
+	--data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+	--data-urlencode "text=${TEMPLATE}" \
+	--data-urlencode "parse_mode=Markdown" \
+	"https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"

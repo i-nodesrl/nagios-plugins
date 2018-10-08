@@ -1,4 +1,4 @@
-PLUGINS	= $(wildcard check_*)
+PLUGINS	= $(wildcard check_*) $(wildcard notify_*)
 CWD		= $(shell pwd)
 NAGIOS	= "/usr/lib64/nagios/plugins/"
 

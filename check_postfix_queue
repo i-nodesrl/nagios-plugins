@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+# check_time_diff
+# Nagios plugin to check if system time has any diff
+#
+# Version: 2018-10-08H09:56:11
+#
+# Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
+#
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see http://www.gnu.org/licenses/.
+
+# auxiliary functions
+
+function help()		{ echo -e "Usage:\n\t./$0 [-w <warning_queue_size>] [-c <critical_queue_size>]"; exit 0; }
+function ok()		{ echo "OK: $1"; exit 0; }
+function warning()	{ echo "WARNING: $1"; exit 1; }
+function critical()	{ echo "CRITICAL: $1"; exit 2; }
+function unknown()	{ echo "UNKNOWN: $1"; exit 3; }
+
+# arguments parsing
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		-h|--help)
+			help
+			;;
+		-w|--warning)
+			WARNING_THRESHOLD="$2"
+			shift
+			;;
+		-c|--critical)
+			CRITICAL_THRESHOLD="$2"
+			shift
+			;;
+	esac
+	shift
+done
+
+# arguments validation
+
+if [ -z ${WARNING_THRESHOLD} ]; then
+	WARNING_THRESHOLD=50
+fi
+
+if [ -z ${CRITICAL_THRESHOLD} ]; then
+	CRITICAL_THRESHOLD=100
+fi
+
+# effective script
+
+if [ "$(which postqueue 2>/dev/null > /dev/null; echo $?)" -ne 0 ]; then
+	unknown "postqueue command not found"
+fi
+
+POSTQUEUE_OUTPUT="$(postqueue -p)
+if [ "$(grep -c "queue is empty" <<<"${POSTQUEUE_OUTPUT}")" -gt 0 ]; then
+	ok "queue is empty"
+fi
+
+QUEUE="$(awk 'END{ print $5 }' <<<"${POSTQUEUE_OUTPUT}")"
+
+if [ "${QUEUE}" -ge "${CRITICAL_THRESHOLD}" ]; then
+	critical "queue size ${QUEUE}"
+elif [ "${QUEUE}" -ge "${WARNING_THRESHOLD}" ]; then
+	warning "queue size ${QUEUE}"
+else
+	ok "queue size ${QUEUE}"
+fi

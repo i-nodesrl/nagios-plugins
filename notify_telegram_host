@@ -3,7 +3,7 @@
 # notify_telegram_host
 # Nagios notification plugin to fire Telegram (bot) host notifications
 #
-# Version: 2018-10-08H10:46:08
+# Version: 2018-10-08H13:03:56
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -35,6 +35,44 @@ while [[ $# -gt 0 ]]; do
 			TELEGRAM_CHAT_ID="$2"
 			shift
 			;;
+
+		--host-address)
+			TELEGRAM_HOST_ADDRESS="$2"
+			shift
+			;;
+		--host-alias)
+			TELEGRAM_HOST_ALIAS="$2"
+			shift
+			;;
+		--host-display-name)
+			TELEGRAM_HOST_DISPLAY_NAME="$2"
+			shift
+			;;
+		--host-output)
+			TELEGRAM_HOST_OUTPUT="$2"
+			shift
+			;;
+		--host-state)
+			TELEGRAM_HOST_STATE="$2"
+			shift
+			;;
+		--long-date-time)
+			TELEGRAM_LONG_DATE_TIME="$2"
+			shift
+			;;
+		--notification-author-name)
+			TELEGRAM_NOTIFICATION_AUTHOR_NAME="$2"
+			shift
+			;;
+		--notification-comment)
+			TELEGRAM_NOTIFICATION_COMMENT="$2"
+			shift
+			;;
+		--notification-type)
+			TELEGRAM_NOTIFICATION_TYPE="$2"
+			shift
+			;;
+
 	esac
 	shift
 done
@@ -48,20 +86,26 @@ fi
 # effective script
 
 TEMPLATE=$(cat <<TEMPLATE
-*$NOTIFICATIONTYPE - $HOSTDISPLAYNAME is $HOSTSTATE*
+*$TELEGRAM_HOST_DISPLAY_NAME* is $TELEGRAM_HOST_STATE
 
-Notification Type: $NOTIFICATIONTYPE
+Notification Type: $TELEGRAM_NOTIFICATION_TYPE
 
-Host: $HOSTALIAS
-Address: $HOSTADDRESS
-State: $HOSTSTATE
+Host: $TELEGRAM_HOST_ALIAS
+Address: $TELEGRAM_HOST_ADDRESS
+State: $TELEGRAM_HOST_STATE
 
-Date/Time: $LONGDATETIME
+Date/Time: $TELEGRAM_LONG_DATE_TIME
 
 Additional Info:
-\`$HOSTOUTPUT\`
+\`\`\`
+$TELEGRAM_HOST_OUTPUT
+\`\`\`
 
-Comment: [$NOTIFICATIONAUTHORNAME] $NOTIFICATIONCOMMENT
+Comment:
+*$TELEGRAM_NOTIFICATION_AUTHOR_NAME*
+\`\`\`
+$TELEGRAM_NOTIFICATION_COMMENT
+\`\`\`
 TEMPLATE
 )
 

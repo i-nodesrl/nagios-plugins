@@ -3,7 +3,7 @@
 # notify_telegram_host
 # Nagios notification plugin to fire Telegram (bot) service notifications
 #
-# Version: 2018-10-08H10:46:08
+# Version: 2018-10-08H13:03:56
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -35,6 +35,51 @@ while [[ $# -gt 0 ]]; do
 			TELEGRAM_CHAT_ID="$2"
 			shift
 			;;
+
+		--host-address)
+			TELEGRAM_HOST_ADDRESS="$2"
+			shift
+			;;
+		--host-alias)
+			TELEGRAM_HOST_ALIAS="$2"
+			shift
+			;;
+		--host-display-name)
+			TELEGRAM_HOST_DISPLAY_NAME="$2"
+			shift
+			;;
+		--long-date-time)
+			TELEGRAM_LONG_DATE_TIME="$2"
+			shift
+			;;
+		--notification-author-name)
+			TELEGRAM_NOTIFICATION_AUTHOR_NAME="$2"
+			shift
+			;;
+		--notification-comment)
+			TELEGRAM_NOTIFICATION_COMMENT="$2"
+			shift
+			;;
+		--notification-type)
+			TELEGRAM_NOTIFICATION_TYPE="$2"
+			shift
+			;;
+		--service-desc)
+			TELEGRAM_SERVICE_DESC="$2"
+			shift
+			;;
+		--service-display-name)
+			TELEGRAM_SERVICE_DISPLAY_NAME="$2"
+			shift
+			;;
+		--service-output)
+			TELEGRAM_SERVICE_OUTPUT="$2"
+			shift
+			;;
+		--service-state)
+			TELEGRAM_SERVICE_STATE="$2"
+			shift
+			;;
 	esac
 	shift
 done
@@ -48,21 +93,27 @@ fi
 # effective script
 
 TEMPLATE=$(cat <<TEMPLATE
-*$NOTIFICATIONTYPE - $HOSTDISPLAYNAME - $SERVICEDISPLAYNAME is $SERVICESTATE*
+*$TELEGRAM_HOST_DISPLAY_NAME*: \`$TELEGRAM_SERVICE_DISPLAY_NAME\` is $TELEGRAM_SERVICE_STATE
 
-Notification Type: $NOTIFICATIONTYPE
+Notification Type: $TELEGRAM_NOTIFICATION_TYPE
 
-Service: $SERVICEDESC
-Host: $HOSTALIAS
-Address: $HOSTADDRESS
-State: $SERVICESTATE
+Service: \`$TELEGRAM_SERVICE_DESC\`
+Host: $TELEGRAM_HOST_ALIAS
+Address: $TELEGRAM_HOST_ADDRESS
+State: $TELEGRAM_SERVICE_STATE
 
-Date/Time: $LONGDATETIME
+Date/Time: $TELEGRAM_LONG_DATE_TIME
 
 Additional Info:
-\`$SERVICEOUTPUT\`
+\`\`\`
+$TELEGRAM_SERVICE_OUTPUT
+\`\`\`
 
-Comment: [$NOTIFICATIONAUTHORNAME] $NOTIFICATIONCOMMENT
+Comment:
+*$TELEGRAM_NOTIFICATION_AUTHOR_NAME*
+\`\`\`
+$TELEGRAM_NOTIFICATION_COMMENT
+\`\`\`
 TEMPLATE
 )
 

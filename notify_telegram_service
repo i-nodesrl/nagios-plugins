@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# notify_telegram_host
+# notify_telegram_service
 # Nagios notification plugin to fire Telegram (bot) service notifications
 #
 # Version: 2018-10-08H13:03:56
@@ -92,7 +92,7 @@ fi
 
 # effective script
 
-TEMPLATE=$(cat <<TEMPLATE
+TEMPLATE=$(cat <<EOF
 *$TELEGRAM_HOST_DISPLAY_NAME*: \`$TELEGRAM_SERVICE_DISPLAY_NAME\` is $TELEGRAM_SERVICE_STATE
 
 Notification Type: $TELEGRAM_NOTIFICATION_TYPE
@@ -108,14 +108,21 @@ Additional Info:
 \`\`\`
 $TELEGRAM_SERVICE_OUTPUT
 \`\`\`
+EOF
+)
+
+if [ ! -z "${TELEGRAM_NOTIFICATION_AUTHOR_NAME}" ] && [ ! -z "${TELEGRAM_NOTIFICATION_COMMENT}" ]; then
+	TEMPLATE=$(cat <<EOF
+$TEMPLATE
 
 Comment:
 *$TELEGRAM_NOTIFICATION_AUTHOR_NAME*
 \`\`\`
 $TELEGRAM_NOTIFICATION_COMMENT
 \`\`\`
-TEMPLATE
-)
+EOF
+	)
+fi
 
 curl --silent --output /dev/null \
 	--data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \

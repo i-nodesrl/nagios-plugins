@@ -85,7 +85,7 @@ fi
 
 # effective script
 
-TEMPLATE=$(cat <<TEMPLATE
+TEMPLATE=$(cat <<EOF
 *$TELEGRAM_HOST_DISPLAY_NAME* is $TELEGRAM_HOST_STATE
 
 Notification Type: $TELEGRAM_NOTIFICATION_TYPE
@@ -100,14 +100,21 @@ Additional Info:
 \`\`\`
 $TELEGRAM_HOST_OUTPUT
 \`\`\`
+EOF
+)
+
+if [ ! -z "${TELEGRAM_NOTIFICATION_AUTHOR_NAME}" ] && [ ! -z "${TELEGRAM_NOTIFICATION_COMMENT}" ]; then
+	TEMPLATE=$(cat <<EOF
+$TEMPLATE
 
 Comment:
 *$TELEGRAM_NOTIFICATION_AUTHOR_NAME*
 \`\`\`
 $TELEGRAM_NOTIFICATION_COMMENT
 \`\`\`
-TEMPLATE
-)
+EOF
+	)
+fi
 
 curl --silent --output /dev/null \
 	--data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \

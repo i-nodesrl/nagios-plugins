@@ -1,0 +1,219 @@
+#!/bin/bash
+#
+# check_blacklist
+# Nagios plugin to check if IP(s) (eventually corresponding to provided hostname(s)) are blacklisted
+#
+# Version: 2018-10-09H11:42:44
+#
+# Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
+#
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see http://www.gnu.org/licenses/.
+
+# auxiliary functions
+
+shopt -s expand_aliases
+alias dig="dig +time=2 +tries=1 +short"
+
+function help()		{ echo -e "Usage:\n\t./$0 <host1> <host2> ..."; exit 0; }
+function ok()		{ echo "OK: $1"; exit 0; }
+function warning()	{ echo "WARNING: $1"; exit 1; }
+function critical()	{ echo "CRITICAL: $1"; exit 2; }
+function unknown()	{ echo "UNKNOWN: $1"; exit 3; }
+
+# arguments parsing
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		-h|--help)
+			help
+			;;
+		*)
+			HOSTS="${HOSTS} $1"
+			;;
+	esac
+	shift
+done
+
+# arguments validation
+
+if [ -z "${HOSTS}" ]; then
+	unknown "malformed input addresses"
+fi
+
+# effective script
+
+REGEX_IP='\([0-9]\{1,3\}\)\.\([0-9]\{1,3\}\)\.\([0-9]\{1,3\}\)\.\([0-9]\{1,3\}\)'
+REGEX_PRIVIP='/(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^::1$)|(^[fF][cCdD])/'
+BLACKLISTS=(
+	"0spam-killlist.fusionzero.com"
+	"0spam.fusionzero.com"
+	"access.redhawk.org"
+	"all.rbl.jp"
+	"all.spam-rbl.fr"
+	"all.spamrats.com"
+	"aspews.ext.sorbs.net"
+	"b.barracudacentral.org"
+	"backscatter.spameatingmonkey.net"
+	"badnets.spameatingmonkey.net"
+	"bb.barracudacentral.org"
+	"bl.drmx.org"
+	"bl.konstant.no"
+	"bl.nszones.com"
+	"bl.spamcannibal.org"
+	"bl.spameatingmonkey.net"
+	"bl.spamstinks.com"
+	"black.junkemailfilter.com"
+	"blackholes.five-ten-sg.com"
+	"blacklist.sci.kun.nl"
+	"blacklist.woody.ch"
+	"bogons.cymru.com"
+	"bsb.empty.us"
+	"bsb.spamlookup.net"
+	"cart00ney.surriel.com"
+	"cbl.abuseat.org"
+	"cbl.anti-spam.org.cn"
+	"cblless.anti-spam.org.cn"
+	"cblplus.anti-spam.org.cn"
+	"cdl.anti-spam.org.cn"
+	"cidr.bl.mcafee.com"
+	"combined.rbl.msrbl.net"
+	"db.wpbl.info"
+	"dev.null.dk"
+	"dialups.visi.com"
+	"dnsbl-0.uceprotect.net"
+	"dnsbl-1.uceprotect.net"
+	"dnsbl-2.uceprotect.net"
+	"dnsbl-3.uceprotect.net"
+	"dnsbl.anticaptcha.net"
+	"dnsbl.aspnet.hu"
+	"dnsbl.inps.de"
+	"dnsbl.justspam.org"
+	"dnsbl.kempt.net"
+	"dnsbl.madavi.de"
+	"dnsbl.rizon.net"
+	"dnsbl.rv-soft.info"
+	"dnsbl.rymsho.ru"
+	"dnsbl.sorbs.net"
+	"dnsbl.zapbl.net"
+	"dnsrbl.swinog.ch"
+	"dul.pacifier.net"
+	"dyn.nszones.com"
+	"dyna.spamrats.com"
+	"fnrbl.fast.net"
+	"fresh.spameatingmonkey.net"
+	"hostkarma.junkemailfilter.com"
+	"images.rbl.msrbl.net"
+	"ips.backscatterer.org"
+	"ix.dnsbl.manitu.net"
+	"korea.services.net"
+	"l2.bbfh.ext.sorbs.net"
+	"l3.bbfh.ext.sorbs.net"
+	"l4.bbfh.ext.sorbs.net"
+	"list.bbfh.org"
+	"list.blogspambl.com"
+	"mail-abuse.blacklist.jippg.org"
+	"netbl.spameatingmonkey.net"
+	"netscan.rbl.blockedservers.com"
+	"no-more-funn.moensted.dk"
+	"noptr.spamrats.com"
+	"orvedb.aupads.org"
+	"pbl.spamhaus.org"
+	"phishing.rbl.msrbl.net"
+	"pofon.foobar.hu"
+	"psbl.surriel.com"
+	"rbl.abuse.ro"
+	"rbl.blockedservers.com"
+	"rbl.dns-servicios.com"
+	"rbl.efnet.org"
+	"rbl.efnetrbl.org"
+	"rbl.iprange.net"
+	"rbl.schulte.org"
+	"rbl.talkactive.net"
+	"rbl2.triumf.ca"
+	"rsbl.aupads.org"
+	"sbl-xbl.spamhaus.org"
+	"sbl.nszones.com"
+	"sbl.spamhaus.org"
+	"short.rbl.jp"
+	"spam.dnsbl.anonmails.de"
+	"spam.pedantic.org"
+	"spam.rbl.blockedservers.com"
+	"spam.rbl.msrbl.net"
+	"spam.spamrats.com"
+	"spamrbl.imp.ch"
+	"spamsources.fabel.dk"
+	"st.technovision.dk"
+	"tor.dan.me.uk"
+	"tor.dnsbl.sectoor.de"
+	"tor.efnet.org"
+	"torexit.dan.me.uk"
+	"truncate.gbudb.net"
+	"ubl.unsubscore.com"
+	"uribl.spameatingmonkey.net"
+	"urired.spameatingmonkey.net"
+	"virbl.dnsbl.bit.nl"
+	"virus.rbl.jp"
+	"virus.rbl.msrbl.net"
+	"vote.drbl.caravan.ru"
+	"vote.drbl.gremlin.ru"
+	"web.rbl.msrbl.net"
+	"work.drbl.caravan.ru"
+	"work.drbl.gremlin.ru"
+	"wormrbl.imp.ch"
+	"xbl.spamhaus.org"
+	"zen.spamhaus.org"
+)
+
+output_message=""
+
+for NAME in ${HOSTS[@]}; do
+	# resolve address if hostname given
+	if [ "$(grep -cE "${REGEX_IP}" <<< "${NAME}")" -eq 0 ]; then
+		address=$(dig "${NAME}" a)
+		if [ -z "${address}" ]; then
+			unknown "unable to resolve ${address}"
+		fi
+	else
+		address="${NAME}"
+	fi
+
+	# private IP
+	if [ "$(grep -cE "$REGEX_PRIVIP" <<< "${address}")" -gt 0 ]; then
+		continue
+	fi
+
+	address_reverse=$(echo "${address}" | awk -F'.' '{OFS="."; print $4,$3,$2,$1}')
+	address_lists=""
+	for list in ${BLACKLISTS[@]}; do
+		echo ${address_reverse}.${list}
+		if [ ! -z "$(dig "${address_reverse}.${list}" a)" ]; then
+			if [ ! -z "${address_lists}" ]; then
+				address_lists="${address_lists}, "
+			fi
+			address_lists="${address_lists}"
+		fi
+	done
+	if [ "${#address_lists}" -gt 0 ]; then
+		if [ ! -z "${#output_message}" ]; then
+			output_message="${output_message}; "
+		fi
+		output_message="${output_message}${NAME} in: ${address_lists}"
+	fi
+done
+
+if [ ! -z "${output_message}" ]; then
+	critical "${output_message}"
+fi
+
+if [ "$(awk '{print NF}' <<< "${HOSTS}")" -gt 1 ]; then
+	ok "none of the $(awk '{print NF}' <<< "${HOSTS}") IPs is listed in any of the ${#BLACKLISTS[@]} lists"
+else
+	ok "$(xargs <<< "${HOSTS}") isn't listed in any of the ${#BLACKLISTS[@]} lists"
+fi

@@ -3,7 +3,7 @@
 # check_blacklist
 # Nagios plugin to check if IP(s) (eventually corresponding to provided hostname(s)) are blacklisted
 #
-# Version: 2018-10-09H11:42:44
+# Version: 2018-10-09H11:44:43
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -192,7 +192,6 @@ for NAME in ${HOSTS[@]}; do
 	address_reverse=$(echo "${address}" | awk -F'.' '{OFS="."; print $4,$3,$2,$1}')
 	address_lists=""
 	for list in ${BLACKLISTS[@]}; do
-		echo ${address_reverse}.${list}
 		if [ ! -z "$(dig "${address_reverse}.${list}" a)" ]; then
 			if [ ! -z "${address_lists}" ]; then
 				address_lists="${address_lists}, "

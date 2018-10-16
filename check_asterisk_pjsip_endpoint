@@ -1,0 +1,63 @@
+#!/bin/bash
+#
+# check_asterisk_pjsip_endpoint
+# Nagios plugin to check PJSIP endpoint status
+#
+# Version: 2018-10-16H10:30:12
+#
+# Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
+#
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see http://www.gnu.org/licenses/.
+
+# auxiliary functions
+
+function help()		{ echo -e "Usage:\n\t$(basename $0) -e <pjsip_endpoint>"; exit 0; }
+function ok()		{ echo "OK: $1"; exit 0; }
+function warning()	{ echo "WARNING: $1"; exit 1; }
+function critical()	{ echo "CRITICAL: $1"; exit 2; }
+function unknown()	{ echo "UNKNOWN: $1"; exit 3; }
+
+# shell setup
+
+# arguments parsing
+
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		-h|--help)
+			help
+			;;
+		-e|--endpoint)
+			ENDPOINT="$2"
+			shift
+			;;
+	esac
+	shift
+done
+
+# arguments validation
+
+if [ -z "${ENDPOINT}" ]; then
+	help
+fi
+
+# effective script
+
+if [ "$(which asterisk 2>/dev/null > /dev/null; echo $?)" -ne 0 ]; then
+	unknown "asterisk command not found"
+fi
+
+ENDPOINT_ASTERISK="$(asterisk -rx "pjsip show endpoint ${ENDPOINT}")"
+ENDPOINT_STATUS="$(awk '/Contact:/ { print $4 }' <<< "${ENDPOINT_ASTERISK}" | grep -ve '^<.*>$' | tr '[:upper:]' '[:lower:]')"
+
+if [ "$(grep -c avail <<< "${ENDPOINT_STATUS}")" -eq 1 ]; then
+	ok "pjsip endpoint ${ENDPOINT} is available (${ENDPOINT_STATUS})"
+fi
+
+critical "pjsip endpoint ${ENDPOINT} is not available (${ENDPOINT_STATUS})"

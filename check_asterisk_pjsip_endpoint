@@ -3,7 +3,7 @@
 # check_asterisk_pjsip_endpoint
 # Nagios plugin to check PJSIP endpoint status
 #
-# Version: 2018-10-16H10:31:21
+# Version: 2018-10-16H10:42:27
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -44,7 +44,7 @@ done
 # arguments validation
 
 if [ -z "${ENDPOINT}" ]; then
-	help
+	unknown "endpoint parameter is mandatory"
 fi
 
 # effective script

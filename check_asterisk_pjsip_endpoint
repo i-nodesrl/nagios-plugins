@@ -3,7 +3,7 @@
 # check_asterisk_pjsip_endpoint
 # Nagios plugin to check PJSIP endpoint status
 #
-# Version: 2018-10-16H10:42:27
+# Version: 2018-10-16H11:19:23
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -53,10 +53,19 @@ if [ "$(which asterisk 2>/dev/null > /dev/null; echo $?)" -ne 0 ]; then
 	unknown "asterisk command not found"
 fi
 
-ENDPOINT_ASTERISK="$(asterisk -rx "pjsip show endpoint ${ENDPOINT}")"
+ENDPOINT_ASTERISK="$(asterisk -x "pjsip show endpoint ${ENDPOINT}" 2>&1)"
+
+if [ -z "${ENDPOINT_ASTERISK}" ]; then
+	unknown "unable to get endpoint informations"
+elif [ "$(grep -ci "unable to connect" <<< "${ENDPOINT_ASTERISK}")" -gt 0 ]; then
+	critical "unable to connect to asterisk shell"
+fi
+
 ENDPOINT_STATUS="$(awk '/Contact:/ { print $4 }' <<< "${ENDPOINT_ASTERISK}" | grep -ve '^<.*>$' | tr '[:upper:]' '[:lower:]')"
 
-if [ "$(grep -c avail <<< "${ENDPOINT_STATUS}")" -eq 1 ]; then
+if [ -z "${ENDPOINT_STATUS}" ]; then
+	unknown "unable to get status code for endpoint ${ENDPOINT}"
+elif [ "$(grep -c avail <<< "${ENDPOINT_STATUS}")" -eq 1 ]; then
 	ok "pjsip endpoint ${ENDPOINT} is available (${ENDPOINT_STATUS})"
 fi
 

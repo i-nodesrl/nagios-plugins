@@ -3,7 +3,7 @@
 # check_blacklist
 # Nagios plugin to check if IP(s) (eventually corresponding to provided hostname(s)) are blacklisted
 #
-# Version: 2018-10-09H12:04:20
+# Version: 2018-10-16H10:17:21
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -18,14 +18,16 @@
 
 # auxiliary functions
 
-shopt -s expand_aliases
-alias dig="dig +time=2 +tries=1 +short"
-
-function help()		{ echo -e "Usage:\n\t./$0 <host1> <host2> ..."; exit 0; }
+function help()		{ echo -e "Usage:\n\t$(basename $0) <host1> <host2> ..."; exit 0; }
 function ok()		{ echo "OK: $1"; exit 0; }
 function warning()	{ echo "WARNING: $1"; exit 1; }
 function critical()	{ echo "CRITICAL: $1"; exit 2; }
 function unknown()	{ echo "UNKNOWN: $1"; exit 3; }
+
+# shell setup
+
+shopt -s expand_aliases
+alias dig="dig +time=2 +tries=1 +short"
 
 # arguments parsing
 

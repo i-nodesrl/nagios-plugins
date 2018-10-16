@@ -3,7 +3,7 @@
 # notify_telegram_service
 # Nagios notification plugin to fire Telegram (bot) service notifications
 #
-# Version: 2018-10-08H13:03:56
+# Version: 2018-10-16H10:17:21
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -18,7 +18,9 @@
 
 # auxiliary functions
 
-function help()		{ echo -e "Usage:\n\t./$0 -t <bot_token> -c <chat_id>"; exit 0; }
+function help()		{ echo -e "Usage:\n\t$(basename $0) -t <bot_token> -c <chat_id>"; exit 0; }
+
+# shell setup
 
 # arguments parsing
 

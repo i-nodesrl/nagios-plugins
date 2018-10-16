@@ -3,7 +3,7 @@
 # check_time_diff
 # Nagios plugin to check if system time has any diff
 #
-# Version: 2018-10-08H10:46:08
+# Version: 2018-10-16H10:17:21
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -18,11 +18,13 @@
 
 # auxiliary functions
 
-function help()		{ echo -e "Usage:\n\t./$0 [-w <warning_queue_size>] [-c <critical_queue_size>]"; exit 0; }
+function help()		{ echo -e "Usage:\n\t$(basename $0) [-w <warning_queue_size>] [-c <critical_queue_size>]"; exit 0; }
 function ok()		{ echo "OK: $1"; exit 0; }
 function warning()	{ echo "WARNING: $1"; exit 1; }
 function critical()	{ echo "CRITICAL: $1"; exit 2; }
 function unknown()	{ echo "UNKNOWN: $1"; exit 3; }
+
+# shell setup
 
 # arguments parsing
 

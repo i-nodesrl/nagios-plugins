@@ -1,139 +1,73 @@
-#!/usr/bin/perl -w
-
-# check_ro_mounts.pl Copyright (c) 2008 Valentin Vidic <vvidic@carnet.hr>
+#!/bin/bash
 #
-# Checks the mount table for read-only mounts - these are usually a sign of
-# trouble (broken filesystem etc.)
+# check_ro_mounts
+# Nagios plugin to check if are there mountpoints in RO mode
 #
+# Version: 2018-10-23H11:56:40
 #
-# This program is free software; you can redistribute it and/or
-# modify it under the terms of the GNU General Public License
-# as published by the Free Software Foundation; either version 2
-# of the License, or (at your option) any later version.
+# Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty
-# of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# you should have received a copy of the GNU General Public License
-# along with this program (or with Nagios);  if not, write to the
-# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-# Boston, MA 02111-1307, USA
+# This program is free software: you can redistribute it and/or modify it under the terms
+# of the GNU General Public License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+# This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+# without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License along with this program.
+# If not, see http://www.gnu.org/licenses/.
 
-use strict;
-use Getopt::Long;
-use lib "/usr/lib64/nagios/plugins";
-use utils qw (%ERRORS &support);
+# auxiliary functions
 
-my $name = 'RO_MOUNTS';
-my $mtab = '/proc/mounts';
-my @includes = ();
-my @excludes = ();
-my @excluded_types = ();
-my @ro_mounts = ();
-my $want_help = 0;
+function help()		{ echo -e "Usage:\n\t$(basename $0) [-x </to/exclude/mount/point> -x </to/exclude/device>]"; exit 0; }
+function ok()		{ echo "OK: $1"; exit 0; }
+function warning()	{ echo "WARNING: $1"; exit 1; }
+function critical()	{ echo "CRITICAL: $1"; exit 2; }
+function unknown()	{ echo "UNKNOWN: $1"; exit 3; }
 
-Getopt::Long::Configure(qw(no_ignore_case));
-my $res = GetOptions(
-    "help|h" => \$want_help,
-    "mtab|m=s" => \$mtab,
-    "path|p=s" => \@includes,
-    "partition=s" => \@includes,
-    "exclude|x=s" => \@excludes,
-    "exclude-type|X=s" => \@excluded_types,
-);
+# shell setup
 
-if ($want_help or !$res) {
-    print_help();
-    exit $ERRORS{$res ? 'OK' : 'UNKNOWN'};
-}
+shopt -s expand_aliases
 
-my $includes_re       = globs2re(@includes);
-my $excludes_re       = globs2re(@excludes);
-my $excluded_types_re = globs2re(@excluded_types);
+# arguments parsing
 
-open(MTAB, $mtab) or nagios_exit(UNKNOWN => "Can't open $mtab: $!");
-MOUNT: while (<MTAB>) {
-    # parse mtab lines
-    my ($dev, $dir, $fs, $opt) = split;
-    my @opts = split(',', $opt);
+while [[ $# -gt 0 ]]; do
+	case "$1" in
+		-h|--help)
+			help
+			;;
+		-x|--exclude)
+			EXCLUDE_PATTERNS="${EXCLUDE_PATTERNS} $2"
+			;;
+	esac
+	shift
+done
 
-    # check includes/excludes
-    if ($includes_re) {
-        next MOUNT unless $dev =~ qr/$includes_re/
-                       or $dir =~ qr/$includes_re/;
-    }
-    if ($excludes_re) {
-        next MOUNT if $dev =~ qr/$excludes_re/
-                   or $dir =~ qr/$excludes_re/;
-    }
-    if ($excluded_types_re) {
-        next MOUNT if $fs =~ qr/$excluded_types_re/;
-    }
+# arguments validation
 
-    # check for ro option
-    if (grep /^ro$/, @opts) {
-        push @ro_mounts, $dir;
-    }
-}
-nagios_exit(UNKNOWN => "Read failed on $mtab: $!") if $!;
-close(MTAB) or nagios_exit(UNKNOWN => "Can't close $mtab: $!");
+# effective script
 
-# report findings
-if (@ro_mounts) {
-    nagios_exit(CRITICAL => "Found ro mounts: @ro_mounts");
-} else {
-    nagios_exit(OK => "No ro mounts found");
-}
+while read -r mount_entry; do
+	unset mount_ignore
+	mount_dev="$(awk '{ print $1 }' <<< "${mount_entry}")"
+	mount_point="$(awk '{ print $2 }' <<< "${mount_entry}")"
+	mount_opts=",$(awk '{ print $4 }' <<< "${mount_entry}"),"
 
-# convert glob patterns to a RE (undef if no patterns)
-sub globs2re {
-    my(@patterns) = @_;
+	if [[ ${mount_opts} == *",ro,"* ]]; then
+		for exclude_pattern in ${EXCLUDE_PATTERNS}; do
+			if [[ ${mount_dev} == *"${exclude_pattern}"* ]] || [[ ${mount_point} == *"${exclude_pattern}"* ]]; then
+				mount_ignore=1
+				break
+			fi
+		done
+		if [ ! -z ${mount_ignore} ]; then
+			continue
+		fi
+		mounts_ro="${mounts_ro} ${mount_point}"
+	fi
+done < /proc/mounts
 
-    @patterns or return undef;
-    foreach (@patterns) {
-        s/ \\(.)       / sprintf('\x%02X', ord($1)) /egx;
-        s/ ([^\\*?\w]) / sprintf('\x%02X', ord($1)) /egx;
-        s/\*/.*/g;
-        s/\?/./g;
-    }
-    return '\A(?:' . join('|', @patterns) . ')\z';
-}
+if [ ! -z "${mounts_ro}" ]; then
+	critical "RO mounts found: $(xargs <<< "${mounts_ro}")"
+fi
 
-# output the result and exit plugin style
-sub nagios_exit {
-    my ($result, $msg) = @_;
-
-    print "$name $result: $msg\n";
-    exit $ERRORS{$result};
-}
-
-sub print_help {
-    print <<EOH;
-check_ro_mounts 0.1
-Copyright (c) 2008 Valentin Vidic <vvidic\@carnet.hr>
-
-This plugin checks the mount table for read-only mounts.
-
-
-Usage:
-  check_ro_mounts [-m mtab] [-p path] [-x path] [-X type]
-
-Options:
- -h, --help
-    Print detailed help screen
- -m, --mtab=FILE
-    Use this mtab instead (default is /proc/mounts)
- -p, --path=PATH, --partition=PARTITION
-    Glob pattern of path or partition to check (may be repeated)
- -x, --exclude=PATH <STRING>
-    Glob pattern of path or partition to ignore (only works if -p unspecified)
- -X, --exclude-type=TYPE <STRING>
-    Ignore all filesystems of indicated type (may be repeated)
-
-EOH
-
-    support();
-}
-
+ok "no RO mounts found"

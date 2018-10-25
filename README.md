@@ -1,6 +1,6 @@
 # About
 
-This software been by and for I-node s.r.l.
+This software has been developed by and for I-node s.r.l.
 
 For more informations about what you're actually allowed to do with it, look at the [`LICENSE`](https://git.i-node.it/i-node/nagios-plugins/blob/master/LICENSE) file.
 

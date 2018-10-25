@@ -5,7 +5,7 @@ This software been by and for I-node s.r.l.
 For more informations about what you're actually allowed to do with it, look at the [`LICENSE`](https://git.i-node.it/i-node/nagios-plugins/blob/master/LICENSE) file.
 
 | Website | https&#x3A;// **[i-node.it](https://i-node.it)**           |
-| ------- | ---------------------------------------------------------- |
+| :------ | :--------------------------------------------------------- |
 | Wiki    | https&#x3A;// **[wiki.i-node.it](https://wiki.i-node.it)** |
 | Git     | https&#x3A;// **[git.i-node.it](https://git.i-node.it)**   |
 

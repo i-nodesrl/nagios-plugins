@@ -3,7 +3,7 @@
 # check_ro_mounts
 # Nagios plugin to check if are there mountpoints in RO mode
 #
-# Version: 2018-10-23H11:56:40
+# Version: 2018-11-06H11:54:41
 #
 # Copyright (C) 2017 Davide Pucci <d.pucci@i-node.it> for I-Node S.r.l.
 #
@@ -48,9 +48,9 @@ done
 
 while read -r mount_entry; do
 	unset mount_ignore
-	mount_dev="$(awk '{ print $1 }' <<< "${mount_entry}")"
-	mount_point="$(awk '{ print $2 }' <<< "${mount_entry}")"
-	mount_opts=",$(awk '{ print $4 }' <<< "${mount_entry}"),"
+	mount_dev="$(echo "${mount_entry}" | awk '{ print $1 }')"
+	mount_point="$(echo "${mount_entry}" | awk '{ print $2 }')"
+	mount_opts=",$(echo "${mount_entry}" | awk '{ print $4 }'),"
 
 	if [[ ${mount_opts} == *",ro,"* ]]; then
 		for exclude_pattern in ${EXCLUDE_PATTERNS}; do
@@ -67,7 +67,7 @@ while read -r mount_entry; do
 done < /proc/mounts
 
 if [ ! -z "${mounts_ro}" ]; then
-	critical "RO mounts found: $(xargs <<< "${mounts_ro}")"
+	critical "RO mounts found: $(echo "${mounts_ro}" | xargs)"
 fi
 
 ok "no RO mounts found"

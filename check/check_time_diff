@@ -69,18 +69,18 @@ if [ "$(which ntpdate 2>/dev/null > /dev/null; echo $?)" -ne 0 ]; then
 	unknown "ntpdate command not found"
 fi
 
-NTPDATE_OUTPUT="$(ntpdate -q it.pool.ntp.org 2>&1 | xargs)"
-DIFF="$(awk '/sec$/ {print $(NF-1)}' <<<"${NTPDATE_OUTPUT}" | tr -cd '[[:alnum:]] -.')"
+NTPDATE_OUTPUT="$(ntpdate -q "${SERVER_NTP}" 2>&1 | xargs)"
+DIFF="$(echo "${NTPDATE_OUTPUT}" | awk '/sec$/ {print $(NF-1)}' | tr -cd '[[:alnum:]] -.')"
 
 if [ -z "${DIFF}" ]; then
-	if [ "$(grep -c 'no server suitable' <<<"${NTPDATE_OUTPUT}")" -gt 0 ]; then
+	if [ "$(echo "${NTPDATE_OUTPUT}" | grep -c 'no server suitable')" -gt 0 ]; then
 		unknown "no server suitable for synchronization found"
 	else
 		unknown "unable to parse ntpdate output: ${NTPDATE_OUTPUT})"
 	fi
 fi
 
-DIFF_INT="$(awk -F'.' '{print $1}' <<<"${DIFF}")"
+DIFF_INT="$(echo "${DIFF}" | awk -F'.' '{print $1}')"
 DIFF_INT="${DIFF_INT#-}"
 
 if [ "${DIFF_INT}" -ge "${CRITICAL_DIFF}" ]; then
